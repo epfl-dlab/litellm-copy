@@ -8,11 +8,13 @@
     conda activate /dlabdata1/baldwin/miniconda3/envs/litellm_dlab_version
     ```
 
-2. Deploy the server:
+2. Deploy the server (use this [config](config.yaml) as your config):
 
     ```
     export REPLICATE_API_KEY=<YOUR_REPLICATE_API_KEY>; litellm --config <PATH_TO_YOUR_CONFIG_FILE> --port <PORT>
     ```
+
+NOTE: If you want to add a new replicate model in your config and it supports the `system_prompt` argument, make sure to add `supports_system_prompt: true` to your model's config (see [here](config.yaml) for an example). If it doesn't support the `system_prompt` argument then you can either set it `supports_system_prompt: false` or exclude it from the model's config.
 
 ## Option 2: Do it all yourself / You want to modify other code of litellm's library yourself
 
@@ -82,3 +84,4 @@
     python test_run.py
     ```
 8. Voilà !
+
