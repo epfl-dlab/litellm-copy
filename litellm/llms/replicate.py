@@ -200,39 +200,47 @@ def completion(
     for k, v in config.items(): 
         if k not in optional_params: # completion(top_k=3) > replicate_config(top_k=3) <- allows for dynamic variables to be passed in
             optional_params[k] = v
-
-    if "meta/llama-2-13b-chat" in model: 
-        system_prompt = ""
-        prompt = "" 
-        for message in messages: 
-            if message["role"] == "system":
-                system_prompt = message["content"]
-            else: 
-                prompt += message["content"]
-        input_data = {
-            "system_prompt": system_prompt,
-            "prompt": prompt,
-            **optional_params
-        }
+            
+    system_prompt = None
+    if optional_params is not None and "supports_system_prompt" in optional_params:
+        supports_sys_prompt = optional_params.pop("supports_system_prompt")
     else:
-        if model in custom_prompt_dict:
-            # check if the model has a registered custom prompt
-            model_prompt_details = custom_prompt_dict[model]
-            prompt = custom_prompt(
-                    role_dict=model_prompt_details.get("roles", {}), 
-                    initial_prompt_value=model_prompt_details.get("initial_prompt_value", ""),  
-                    final_prompt_value=model_prompt_details.get("final_prompt_value", ""), 
-                    bos_token=model_prompt_details.get("bos_token", ""),
-                    eos_token=model_prompt_details.get("eos_token", ""),
-                    messages=messages,
-                )
-        else:
-            prompt = prompt_factory(model=model, messages=messages)
+        supports_sys_prompt = False
+        
+    if supports_sys_prompt:
+        for i in range(len(messages)):
+            if messages[i]["role"] == "system":
+                first_sys_message = messages.pop(i)
+                system_prompt = first_sys_message["content"]
+                break
+    
+    if model in custom_prompt_dict:
+        # check if the model has a registered custom prompt
+        model_prompt_details = custom_prompt_dict[model]
+        prompt = custom_prompt(
+                role_dict=model_prompt_details.get("roles", {}), 
+                initial_prompt_value=model_prompt_details.get("initial_prompt_value", ""),  
+                final_prompt_value=model_prompt_details.get("final_prompt_value", ""), 
+                bos_token=model_prompt_details.get("bos_token", ""),
+                eos_token=model_prompt_details.get("eos_token", ""),
+                messages=messages,
+            )
+    else:
+        prompt = prompt_factory(model=model, messages=messages)
 
+    
+    if system_prompt is not None:
+        input_data = {
+            "prompt": prompt,
+            "system_prompt": system_prompt
+        }
+    
+    else:
         input_data = {
             "prompt": prompt,
             **optional_params
         }
+        
 
 
     ## COMPLETION CALL
